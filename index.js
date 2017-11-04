@@ -75,7 +75,10 @@ module.exports = {
 //==============================================================================
 // main
 
-// initialize the global resolver
+// Initialize the global resolver.
+// Note that the global resolver is NOT the same as the resolver created for
+// '/' when no config file was found.
+// This one has an EMPTY path!
 globalResolver = new Context();
 
 // initialize resolver for parent module

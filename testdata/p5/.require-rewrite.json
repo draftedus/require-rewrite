@@ -1,0 +1,4 @@
+{
+  "include": ["src", "%", "lib"],
+  "map": ["foo", "bar"]
+}

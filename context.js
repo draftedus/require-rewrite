@@ -68,19 +68,47 @@ const findConfigfile = (path) => {
 };
 
 //------------------------------------------------------------------------------
-const applyConfig = (config, resolver) => {
-  if (config.before) {
-    if (!Array.isArray(config.before)) {
-      throw new Error('require-rewrite Config: "before" needs to be an array');
-    }
-    resolver.pathsBefore = config.before.slice(0);
-  }
+// Both `pub` and `priv` will receive all methods of `pub` bound to `priv`.
+// This means, they will share all public methods, but the privates (methods and
+// properties) will be accessible only from within.
+/*
+const implementPriv = (pub, priv) => {
+  const prototype = Object.getPrototypeOf(pub);
+  Object.getOwnPropertyNames(prototype)
+    .filter(name => name !== 'constructor')
+    .forEach(fnName => {
+      pub[fnName] = priv[fnName] = pub[fnName].bind(priv);
+    });
+};
+*/
 
-  if (config.after) {
-    if (!Array.isArray(config.after)) {
-      throw new Error('require-rewrite Config: "after" needs to be an array');
+//------------------------------------------------------------------------------
+const applyConfig = (config, resolver) => {
+  if (config.include) {
+    if (!Array.isArray(config.include)) {
+      throw new Error('require-rewrite Config: "include" needs to be an array');
     }
-    resolver.pathsAfter = config.after.slice(0);
+    const i = config.include.indexOf('%');
+    if (i === -1) {
+      resolver.pathsBefore = config.include.slice(0);
+    } else {
+      resolver.pathsBefore = config.include.slice(0, i);
+      resolver.pathsAfter = config.include.slice(i + 1);
+    }
+  } else {
+    if (config.before) {
+      if (!Array.isArray(config.before)) {
+        throw new Error('require-rewrite Config: "before" needs to be an array');
+      }
+      resolver.pathsBefore = config.before.slice(0);
+    }
+
+    if (config.after) {
+      if (!Array.isArray(config.after)) {
+        throw new Error('require-rewrite Config: "after" needs to be an array');
+      }
+      resolver.pathsAfter = config.after.slice(0);
+    }
   }
 
   if (config.map) {
@@ -100,19 +128,14 @@ const applyConfig = (config, resolver) => {
 };
 
 //------------------------------------------------------------------------------
-const loadConfig = (configFile, resolver) => {
+const loadConfig = (configFile) => {
   const fileName = Path.basename(configFile);
   const pkg = JSON.parse(Fs.readFileSync(configFile, 'utf-8'));
   const config = (fileName === 'package.json')
     ? pkg.requireRewrite
     : pkg;
-  if (pkg.name) {
-    resolver.name = pkg.name;
-  }
-  if (config) {
-    debug(`(${resolver.name}) Config loaded from ${configFile}`);
-    applyConfig(config, resolver);
-  }
+  const name = pkg.name || null;
+  return { config, name };
 };
 
 let resolverCount = 0;
@@ -122,8 +145,7 @@ class Context {
     this.path = packagePath;
     this.name = `Resolver ${resolverCount++}`;
 
-    this.resolver = new Set();
-    this.orderedResolver = [];
+    this.resolver = [];
     this.pathsBefore = [];
     this.pathsAfter = [];
 
@@ -133,10 +155,17 @@ class Context {
 
     if (isFile(configFile)) {
       try {
-        loadConfig(configFile, this);
+        const { config, name } = loadConfig(configFile);
+        if (name) {
+          this.name = name;
+        }
+        if (config) {
+          debug(`(${this.name}) Config loaded from ${configFile}`);
+          applyConfig(config, this);
+        }
       } catch (error) {
         // reset, but keep in map
-        this.resolver = new Set();
+        this.resolver = [];
         this.pathsBefore = [];
         this.pathsAfter = [];
         throw error;
@@ -155,18 +184,17 @@ class Context {
       throw new Error(`require-rewrite Unknown type "type". Only allowed are: ${Object.keys(resolverTypes).join(', ')}.`);
     }
     dst = dst || src;
-    this.add(createResolver(src, dst));
+    const resolver = createResolver(src, dst);
+    resolver.type = type;
+    this.add(resolver);
   }
 
   add(resolver) {
-    if (!this.resolver.has(resolver)) {
-      this.resolver.add(resolver);
-      this.orderedResolver.unshift(resolver);
-    }
+    this.resolver.unshift(resolver);
   }
 
   resolve(request, parent) {
-    for (const resolver of this.orderedResolver) {
+    for (const resolver of this.resolver) {
       let result = resolver(request, parent);
       if (result) {
         result = Path.resolve(this.path, result);
@@ -201,4 +229,11 @@ Context.get = (path, create = false) => {
 //------------------------------------------------------------------------------
 module.exports = {
   Context,
+  // these are just exported for unit tests
+  regexpResolver,
+  substrResolver,
+  loadConfig,
+  findConfigfile,
+  applyConfig,
+  packages,
 };

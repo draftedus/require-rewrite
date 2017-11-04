@@ -1,8 +1,12 @@
 {
-  "name": "require-rewrite-test-module1",
+  "name": "require-rewrite-test-project",
   "description": "Node module management extension.",
   "version": "0.1.0",
   "license": "MIT",
+  "requireRewrite": {
+    "include": ["src", "%", "lib"],
+    "map": ["foo", "bar"]
+  },
   "author": {
     "name": "Arne Seib",
     "email": "arne28@seiberspace.de",

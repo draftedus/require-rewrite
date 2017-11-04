@@ -3,6 +3,9 @@
   "description": "Node module management extension.",
   "version": "0.1.1",
   "license": "MIT",
+  "scripts": {
+    "test": "mocha"
+  },
   "author": {
     "name": "Arne Seib",
     "email": "arne28@seiberspace.de",
@@ -18,6 +21,8 @@
   },
   "keywords": [
     "path",
+    "alias",
+    "include",
     "require",
     "resolve",
     "rewrite",

@@ -114,11 +114,22 @@ not provided) or `match` for a regular expression match.
 
 rewrites `lib/lll/ggg/...` to `lib/ggg/lll/...`, `lib/fff/zzz/...` to `lib/zzz/fff/...` etc.
 
-_TBD_
-
 ### Includes
 
-_TBD_
+```json
+"requireRewrite": {
+  "before": [],
+  "after": [
+    "lib",
+  ]
+}
+```
+
+This adds `lib` to the list of paths to search for modules, and in this case, since
+it is set in the `after`-array, _after_ the default node module paths.
+
+If you instead add an include path to the `before`-array, modules are _first_
+being searched in that path, and _then_ in the default node module paths.
 
 ## Package awareness
 
@@ -194,35 +205,43 @@ The threee arguments are exactly what you find in your config file for each entr
 }
 ```
 
-Do the same via the API:
+To do the same via the API, just call:
 
 ```js
 use('src/', 'dst/');
 ```
 
-And obviously
+And obviously for the one-argument-version:
 
 ```js
 use('src/');
 ```
 
-is also possible.
-
 Besides that, you can specify the `type`, which can be `alias` for a simple string
 alias, or `match` for a regular expression match/replace.
 
-And there is a third way to call it:
+And there is a third way to call it, with a `function`:
 
 ```js
 const myResolver = (request, parent) => {
-  // resolve request and return a rewritten request
+  // Resolve request and return a rewritten request
   // which can then be resolved by node.
+  // If the request couldn't be resolved,
+  // return a falsy value.
 };
 
 use(myResolver);
 ```
 
-I probably don't have to explain what `useGlobal()` does.
+This allows you to completely mess up your application by defining a dynamic resolver,
+that resolves to different locations based on your application state (or maybe your
+`NODE_ENV`).
+
+If you call `useGlobal()` instead `use()`, the alias or match will be set for
+**all packages**!.
+
+Remember that resolver are called in reverse order, means, last one added is first
+one called. So you effectively overwrite existing resolvers for a certian request.
 
 ## TODO:
 
