@@ -193,7 +193,7 @@ looks like this:
 
 ### Context
 
-#### `use(from[, to = src][, type = 'alias'])`
+#### `use(from[, to = from][, type = 'alias'])`
 
 The threee arguments are exactly what you find in your config file for each entry:
 
