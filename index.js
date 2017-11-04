@@ -21,7 +21,6 @@ Module._resolveFilename = (_super => (request, parent, isMain, options) => {
     for (const resolver of resolverAr) {
       const newRequest = resolver.resolve(request, parent);
       if (newRequest) {
-      //console.log(`resolve ${request} from ${resolver.path}`);
         return _super(newRequest, parent, isMain, options);
       }
     }

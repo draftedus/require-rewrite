@@ -91,7 +91,6 @@ const applyConfig = (config, resolver) => {
     if (!Array.isArray(config.include)) {
       throw new Error('require-rewrite Config: "include" needs to be an array');
     }
-    console.log(resolver.resolvePath);
     const i = config.include.indexOf('%');
     if (i === -1) {
       resolver.preIncludes = config.include.map(resolver.resolvePath);
