@@ -13,6 +13,9 @@ const CONFIG_FILES = [
 // Map package-path => `Context`
 const packages = new Map();
 
+// Global resolver: Whatever is defined here is resolved for all modules!
+let globalResolver = null;
+
 const debug = util.debuglog('require-rewrite');
 
 //------------------------------------------------------------------------------
@@ -88,27 +91,32 @@ const applyConfig = (config, resolver) => {
     if (!Array.isArray(config.include)) {
       throw new Error('require-rewrite Config: "include" needs to be an array');
     }
+    console.log(resolver.resolvePath);
     const i = config.include.indexOf('%');
     if (i === -1) {
-      resolver.pathsBefore = config.include.slice(0);
+      resolver.preIncludes = config.include.map(resolver.resolvePath);
     } else {
-      resolver.pathsBefore = config.include.slice(0, i);
-      resolver.pathsAfter = config.include.slice(i + 1);
+      resolver.preIncludes = config.include.slice(0, i)
+        .map(resolver.resolvePath);
+      resolver.postIncludes = config.include.slice(i + 1)
+        .map(resolver.resolvePath);
     }
   } else {
+    // ## compatibility 0.1.1
     if (config.before) {
       if (!Array.isArray(config.before)) {
         throw new Error('require-rewrite Config: "before" needs to be an array');
       }
-      resolver.pathsBefore = config.before.slice(0);
+      resolver.preIncludes = config.before.map(resolver.resolvePath);
     }
 
     if (config.after) {
       if (!Array.isArray(config.after)) {
         throw new Error('require-rewrite Config: "after" needs to be an array');
       }
-      resolver.pathsAfter = config.after.slice(0);
+      resolver.postIncludes = config.after.map(resolver.resolvePath);
     }
+    // ## END compatibility 0.1.1
   }
 
   if (config.map) {
@@ -144,10 +152,20 @@ class Context {
   constructor(packagePath = '', configFile = null) {
     this.path = packagePath;
     this.name = `Resolver ${resolverCount++}`;
+    this.resolvePath = this.resolvePath.bind(this);
 
-    this.resolver = [];
-    this.pathsBefore = [];
-    this.pathsAfter = [];
+    // create public interface: methods
+    this.publicIf = {};
+    ['use'].forEach(name => {
+      this.publicIf[name] = this[name].bind(this);
+    });
+
+    // getter
+    Object.defineProperty(this.publicIf, 'pre', { get: () => this.preIncludes, enumerable: true });
+    Object.defineProperty(this.publicIf, 'post', { get: () => this.postIncludes, enumerable: true });
+    Object.defineProperty(this.publicIf, 'global', { get: () => globalResolver.publicIf, enumerable: true });
+
+    this.reset();
 
     // Set early even if loading config fails, so the resolver exists
     // and will not be attempted to load again.
@@ -165,14 +183,18 @@ class Context {
         }
       } catch (error) {
         // reset, but keep in map
-        this.resolver = [];
-        this.pathsBefore = [];
-        this.pathsAfter = [];
+        this.reset();
         throw error;
       }
     }
 
     debug(`(${this.name}) new Context for "${packagePath}"`);
+  }
+
+  reset() {
+    this.resolver = [];
+    this.preIncludes = [];
+    this.postIncludes = [];
   }
 
   use(src, dst, type = 'alias') {
@@ -191,6 +213,10 @@ class Context {
 
   add(resolver) {
     this.resolver.unshift(resolver);
+  }
+
+  resolvePath(path) {
+    return Path.resolve(this.path, path);
   }
 
   resolve(request, parent) {
@@ -227,8 +253,16 @@ Context.get = (path, create = false) => {
 };
 
 //------------------------------------------------------------------------------
+// Initialize the global resolver.
+// Note that the global resolver is NOT the same as the resolver created for
+// '/' when no config file was found.
+// This one has an EMPTY path!
+globalResolver = new Context();
+
+//------------------------------------------------------------------------------
 module.exports = {
   Context,
+  getGlobalResolver: () => globalResolver,
   // these are just exported for unit tests
   regexpResolver,
   substrResolver,

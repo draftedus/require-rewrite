@@ -37,12 +37,12 @@ npm install require-rewrite
 As the first thing in you application, do:
 
 ```js
-require('require-rewrite');
+require('require-rewrite')(__dirname);
 // or, if you need the API:
-// const requireRewrite = require('require-rewrite');
+// const requireRewrite = require('require-rewrite')(__dirname);
 ```
 
-That will initialize require-rewrite globally.
+That will initialize require-rewrite for the package the requiring file is part of.
 
 ## Configuration
 
@@ -187,12 +187,13 @@ and will have their own context, defined via the `.require-rewrite.json` files.
 
 ## API
 
-The API is pretty straight forward. There are two identical functions: `use()` and `useGlobal()`,
-with the following signature:
+What you get, when you `require` require-rewrite, is a context for the package
+your file is part of (that's why you have to pass `__dirname`). Such a context
+looks like this:
 
-```js
-use(from, to, type = 'alias');
-```
+### Context
+
+#### `use(from[, to = src][, type = 'alias'])`
 
 The threee arguments are exactly what you find in your config file for each entry:
 
@@ -207,13 +208,13 @@ The threee arguments are exactly what you find in your config file for each entr
 To do the same via the API, just call:
 
 ```js
-use('src/', 'dst/');
+requireRewrite.use('src/', 'dst/');
 ```
 
 And obviously for the one-argument-version:
 
 ```js
-use('src/');
+requireRewrite.use('src/');
 ```
 
 Besides that, you can specify the `type`, which can be `alias` for a simple string
@@ -229,19 +230,32 @@ const myResolver = (request, parent) => {
   // return a falsy value.
 };
 
-use(myResolver);
+requireRewrite.use(myResolver);
 ```
 
 This allows you to completely mess up your application by defining a dynamic resolver,
 that resolves to different locations based on your application state (or maybe your
 `NODE_ENV`).
 
-If you call `useGlobal()` instead `use()`, the alias or match will be set for
-**all packages**!.
-
 Remember that resolver are called in reverse order, means, last one added is first
 one called. So you effectively overwrite existing resolvers for a certian request.
 
-## TODO:
+#### `pre`, `post`
 
-- Extend the API to allow manipulation of existing resolver and include paths.
+Gives you access to the array with the includes before / after default includes.
+You can manipulate the array directly with array functions like `splice()`.
+
+Note that the paths there, unless absolute, are resolved against the current
+workdirectory. They are passed as-is to the module resolving process.
+
+Include paths read from configuration files are already resolved against the config
+file location.
+
+```js
+// add some include path
+requireRewrite.pre.push(Path.join(__dirname, '..', 'otherlib'));
+```
+
+#### `global`
+
+Gives you access to the global context. Whatever you set there is valid for all packages.

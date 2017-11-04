@@ -1,4 +1,5 @@
-/*globals describe,it,before*/
+/*globals describe,it*/
+const Path = require('path');
 const chai = require('chai');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
@@ -9,12 +10,16 @@ const { expect } = chai;
 
 const applyConfig = require('../context.js').applyConfig;
 
+const TEST1_ROOT = Path.join(__dirname, '..', 'testdata', 'p1');
+
 //------------------------------------------------------------------------------
 const mockResolver = () => ({
+  path: TEST1_ROOT,
   resolver: [],
-  pathsBefore: [],
-  pathsAfter: [],
+  preIncludes: [],
+  postIncludes: [],
   use: sinon.spy(),
+  resolvePath: (path) => Path.resolve(TEST1_ROOT, path),
 });
 
 //==============================================================================
@@ -29,13 +34,13 @@ describe(`applyConfig,`, () => {
         applyConfig(config, resolver);
       }).to.throw();
     });
-    it('all entries are added to resolver.pathsBefore.', () => {
+    it('all entries are added to resolver.preIncludes and resolved.', () => {
       const config = {
-        before: ['src', 'lib']
+        before: [Path.join(TEST1_ROOT, 'src'), Path.join(TEST1_ROOT, 'lib')]
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsBefore).to.be.eql(config.before);
+      expect(resolver.preIncludes).to.be.eql(config.before);
     });
   });
 
@@ -49,13 +54,13 @@ describe(`applyConfig,`, () => {
         applyConfig(config, resolver);
       }).to.throw();
     });
-    it('all entries are added to resolver.pathsBefore.', () => {
+    it('all entries are added to resolver.preIncludes and resolved.', () => {
       const config = {
-        after: ['src', 'lib']
+        after: [Path.join(TEST1_ROOT, 'src'), Path.join(TEST1_ROOT, 'lib')]
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsAfter).to.be.eql(config.after);
+      expect(resolver.postIncludes).to.be.eql(config.after);
     });
   });
 
@@ -69,44 +74,44 @@ describe(`applyConfig,`, () => {
         applyConfig(config, resolver);
       }).to.throw();
     });
-    it(`['src', '%', 'lib'] is split ['src']:['lib'].`, () => {
+    it(`['src', '%', 'lib'] is split ['src']:['lib'] and resolved.`, () => {
       const config = {
         include: ['src', '%', 'lib']
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsBefore).to.be.eql(['src']);
-      expect(resolver.pathsAfter).to.be.eql(['lib']);
+      expect(resolver.preIncludes).to.be.eql([Path.join(TEST1_ROOT, 'src')]);
+      expect(resolver.postIncludes).to.be.eql([Path.join(TEST1_ROOT, 'lib')]);
     });
 
-    it(`['%', 'lib'] is split []:['lib'].`, () => {
+    it(`['%', 'lib'] is split []:['lib'] and resolved.`, () => {
       const config = {
         include: ['%', 'lib']
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsBefore).to.be.eql([]);
-      expect(resolver.pathsAfter).to.be.eql(['lib']);
+      expect(resolver.preIncludes).to.be.eql([]);
+      expect(resolver.postIncludes).to.be.eql([Path.join(TEST1_ROOT, 'lib')]);
     });
 
-    it(`['src', '%'] is split ['src']:[].`, () => {
+    it(`['src', '%'] is split ['src']:[] and resolved.`, () => {
       const config = {
         include: ['src', '%']
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsBefore).to.be.eql(['src']);
-      expect(resolver.pathsAfter).to.be.eql([]);
+      expect(resolver.preIncludes).to.be.eql([Path.join(TEST1_ROOT, 'src')]);
+      expect(resolver.postIncludes).to.be.eql([]);
     });
 
-    it(`['src', 'lib'] is split ['src', 'lib']:[].`, () => {
+    it(`['src', 'lib'] is split ['src', 'lib']:[] and resolved.`, () => {
       const config = {
         include: ['src', 'lib']
       };
       const resolver = mockResolver();
       applyConfig(config, resolver);
-      expect(resolver.pathsBefore).to.be.eql(['src', 'lib']);
-      expect(resolver.pathsAfter).to.be.eql([]);
+      expect(resolver.preIncludes).to.be.eql([Path.join(TEST1_ROOT, 'src'), Path.join(TEST1_ROOT, 'lib')]);
+      expect(resolver.postIncludes).to.be.eql([]);
     });
   });
 

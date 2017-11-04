@@ -1,4 +1,4 @@
-/*globals describe,it,beforeEach,afterEach,before,after*/
+/*globals describe,it*/
 const chai = require('chai');
 const { regexpResolver, substrResolver } = require('../context.js');
 

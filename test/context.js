@@ -1,4 +1,4 @@
-/*globals describe,it,beforeEach,afterEach,before,after*/
+/*globals describe,it,afterEach*/
 const Path = require('path');
 const chai = require('chai');
 const sinon = require('sinon');
@@ -11,33 +11,12 @@ const { expect } = chai;
 const TEST1_ROOT = Path.join(__dirname, '..', 'testdata', 'p1');
 const TEST6_ROOT = Path.join(__dirname, '..', 'testdata', 'p6');
 
-//------------------------------------------------------------------------------
-const load = () => {
-  const { Context, packages } = require('../context.js');
-  Context.__packages = packages;
-  return Context;
-};
-
-//------------------------------------------------------------------------------
-const unload = () => {
-  try {
-    const name = require.resolve('../context.js');
-    delete require.cache[name];
-  } catch (error) {
-  }
-  return null;
-};
+const { Context, packages } = require('../context.js');
 
 //==============================================================================
 describe(`Context`, () => {
-  let Context = null;
-
-  beforeEach(() => {
-    Context = load();
-  });
-
   afterEach(() => {
-    Context = unload();
+    packages.clear();
   });
 
   describe(`.get()`, () => {
@@ -59,39 +38,40 @@ describe(`Context`, () => {
 
 //------------------------------------------------------------------------------
 describe(`A Context's`, () => {
-  let Context = null;
-
-  before(() => {
-    Context = load();
-  });
-
-  after(() => {
-    Context = unload();
+  afterEach(() => {
+    packages.clear();
   });
 
   describe(`constructor`, () => {
     it('will throw for an invalid config file', () => {
-      unload();
-      Context = load();
       expect(() => new Context(TEST6_ROOT, Path.join(TEST6_ROOT, 'package.json'))).to.throw();
     });
     describe(`will add the Context to the global map`, () => {
       it('when no error occurs', () => {
-        unload();
-        Context = load();
         const context = new Context('/foo');
-        expect(Context.__packages.size).to.equal(1);
-        expect(Context.__packages.get('/foo')).to.equal(context);
+        expect(packages.size).to.equal(1);
+        expect(packages.get('/foo')).to.equal(context);
       });
       it('even when an error occurs', () => {
-        unload();
-        Context = load();
         try {
-          const context = new Context(TEST6_ROOT, Path.join(TEST6_ROOT, 'package.json'));
-        } catch (error) {
+          new Context(TEST6_ROOT, Path.join(TEST6_ROOT, 'package.json'));//eslint-disable-line
+        } catch (error) {//eslint-disable-line
         }
-        expect(Context.__packages.size).to.equal(1);
+        expect(packages.size).to.equal(1);
       });
+    });
+  });
+
+  describe(`reset`, () => {
+    it('will empty resolver, preIncludes and postIncludes', () => {
+      const context = new Context();
+      context.resolver.push(() => {});
+      context.preIncludes.push('src');
+      context.postIncludes.push('lib');
+      context.reset();
+      expect(context.resolver.length).to.be.equal(0);
+      expect(context.preIncludes.length).to.be.equal(0);
+      expect(context.postIncludes.length).to.be.equal(0);
     });
   });
 

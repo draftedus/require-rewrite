@@ -1,8 +1,5 @@
 //------------------------------------------------------------------------------
-const { Context } = require('./context');
-
-// Global resolver: Whatever is defined here is resolved for all modules!
-let globalResolver = null;
+const { Context, getGlobalResolver } = require('./context');
 
 const Module = module.constructor;
 
@@ -16,7 +13,7 @@ const isNoPath = (path) => ((path[0] !== '.') && (path[0] !== '/'));
 // Module._resolveFilename
 Module._resolveFilename = (_super => (request, parent, isMain, options) => {
   if (isNoPath) {
-    const resolverAr = [globalResolver];
+    const resolverAr = [getGlobalResolver()];
     const packageResolver = Context.get(parent.filename);
     if (packageResolver) {
       resolverAr.push(packageResolver);
@@ -40,9 +37,9 @@ Module._resolveLookupPaths = (_super => (request, parent, newReturn) => {
   const packageResolver = Context.get(parent.filename);
   if (packageResolver) {
     return [
-      ...packageResolver.pathsBefore,
+      ...packageResolver.preIncludes,
       ...paths,
-      ...packageResolver.pathsAfter,
+      ...packageResolver.postIncludes,
     ];
   }
   return paths;
@@ -56,30 +53,6 @@ Module.prototype.load = (_super => function (filename) {
 })(Module.prototype.load);
 
 //==============================================================================
-// API
-
-//------------------------------------------------------------------------------
-const use = (useGlobal, src, dst, type = 'alias') => {
-  const resolver = useGlobal
-    ? globalResolver
-    : Context.get(module.parent.filename, true);
-  resolver.use(src, dst, type);
-};
-
-//------------------------------------------------------------------------------
-module.exports = {
-  use: use.bind(null, false),
-  useGlobal: use.bind(null, true),
-};
-
-//==============================================================================
 // main
 
-// Initialize the global resolver.
-// Note that the global resolver is NOT the same as the resolver created for
-// '/' when no config file was found.
-// This one has an EMPTY path!
-globalResolver = new Context();
-
-// initialize resolver for parent module
-Context.get(module.parent.filename, true);
+module.exports = (path) => Context.get(path, true).publicIf;

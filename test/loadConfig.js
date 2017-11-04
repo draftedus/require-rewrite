@@ -1,4 +1,4 @@
-/*globals describe,it,before*/
+/*globals describe,it*/
 const Path = require('path');
 const { expect } = require('chai');
 
