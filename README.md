@@ -38,6 +38,8 @@ As the first thing in you application, do:
 
 ```js
 require('require-rewrite');
+// or, if you need the API:
+// const requireRewrite = require('require-rewrite');
 ```
 
 That will initialize require-rewrite globally.
@@ -50,16 +52,14 @@ your `package.json`. Add a section:
 ```json
 "requireRewrite": {
   "map": [],
-  "before": [],
-  "after": []
+  "include": []
 }
 ```
 
 Where:
 
 `map` contains [aliases](#aliases) and [regular expressions](#regular-expression-matches) (optional).  
-`before` contains [includes](#includes), that are used _before_ the node.js-module paths (optional).  
-`after` contains [includes](#includes), that are used _after_ the node.js-module paths (optional).  
+`include` contains [includes](#includes) (optional).  
 
 ### Aliases
 
@@ -118,18 +118,17 @@ rewrites `lib/lll/ggg/...` to `lib/ggg/lll/...`, `lib/fff/zzz/...` to `lib/zzz/f
 
 ```json
 "requireRewrite": {
-  "before": [],
-  "after": [
-    "lib",
+  "include": [
+    "lib", "%", "src"
   ]
 }
 ```
 
-This adds `lib` to the list of paths to search for modules, and in this case, since
-it is set in the `after`-array, _after_ the default node module paths.
+This adds `lib` to the list of paths to search for modules, _before_ the default
+node module paths, and `src` _after_ the defaults.
 
-If you instead add an include path to the `before`-array, modules are _first_
-being searched in that path, and _then_ in the default node module paths.
+Note the `'%'`, which marks the default paths. If you omit that, all paths will be
+added before the default paths.
 
 ## Package awareness
 
@@ -245,4 +244,4 @@ one called. So you effectively overwrite existing resolvers for a certian reques
 
 ## TODO:
 
-- Extend the API to allow manipulation of existing resolver.
+- Extend the API to allow manipulation of existing resolver and include paths.
