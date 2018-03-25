@@ -12,16 +12,27 @@ describe(`substrResolver`, () => {
     expect(result).to.be.a('function');
   });
 
-  it('rewrites a matching request', () => {
+  it('rewrites a matching request with trailing slash', () => {
     const resolver = substrResolver('src/', 'dst/');
-    const result = resolver('src/a');
-    expect(result).to.equal('dst/a');
+    expect(resolver('src/a')).to.equal('dst/a');
+    expect(resolver('src')).to.equal('dst');
+  });
+
+  it('rewrites a matching request without trailing slash', () => {
+    const resolver = substrResolver('src', 'dst');
+    expect(resolver('src/a')).to.equal('dst/a');
+    expect(resolver('src')).to.equal('dst');
+  });
+
+  it('does not rewrite a partial match', () => {
+    const resolver = substrResolver('src', 'dst');
+    expect(resolver('srcother/a')).to.be.false;
+    expect(resolver('srcother')).to.be.false;
   });
 
   it('returns false for a non-match', () => {
     const resolver = substrResolver('src/', 'dst/');
-    const result = resolver('dst/a');
-    expect(result).to.be.false;
+    expect(resolver('dst/a')).to.be.false;
   });
 });
 

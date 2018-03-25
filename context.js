@@ -19,6 +19,16 @@ let globalResolver = null;
 const debug = util.debuglog('require-rewrite');
 
 //------------------------------------------------------------------------------
+const asserTrailingSlash = (s) => s[s.length - 1] !== '/'
+  ? `${s}/`
+  : s;
+
+//------------------------------------------------------------------------------
+const removeTrailingSlash = (s) => s[s.length - 1] === '/'
+  ? s.substr(0, s.length - 1)
+  : s;
+
+//------------------------------------------------------------------------------
 // Resolves via a regular expression (via `String.replace()`).
 const regexpResolver = (expr, dst) => {
   expr = (typeof expr === 'string')
@@ -30,9 +40,19 @@ const regexpResolver = (expr, dst) => {
 //------------------------------------------------------------------------------
 // Resolves via a subtring match. So if `request` begins with `src`, `src` is
 // replaced with `dst`.
-const substrResolver = (src, dst) =>
-  (request) =>
-    request.startsWith(src) && `${dst}${request.substr(src.length)}`;
+const substrResolver = (src, dst) => {
+  const dstPath = dst.split('/').filter(v => v);
+  const srcPath = src.split('/').filter(v => v);
+  return (request) => {
+    const requestPath = request.split('/').filter(v => v);
+    for (let n = 0; n < srcPath.length; n++) {
+      if (srcPath[n] !== requestPath.shift()) {
+        return false;
+      }
+    }
+    return [...dstPath, ...requestPath].join('/');
+  }
+}
 
 // Map resolver types to factory functions.
 const resolverTypes = {
