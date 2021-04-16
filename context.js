@@ -236,6 +236,7 @@ Context.get = (path, create = false) => {
   // Without the `create`-flag it's not necessary to actually search for a
   // config. Just traverse the path up util it matches an entry in `packages`.
   // This might speed up things a bit.
+  if (!path) return;
   if (!create) {
     path = Path.extname(path) ? Path.dirname(path) : path;
     for (let current = path; current; current = dirnameIf(current)) {
